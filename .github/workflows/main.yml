@@ -33,8 +33,7 @@ jobs:
       # analyse la qualité du code avec SonarCloud (Quality Gate)
       # le token est stocké dans les secrets GitHub, jamais en clair
       - name: SonarCloud analysis
-        run: mvn -B verify sonar:sonar -Dsonar.projectKey=neyhala_tp-devops-correction-docker -Dsonar.organization=neyhala -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=${{ secrets.SONAR_TOKEN }} --file ./simple-api/pom.xml
-
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=neyhala_tp-devops-correction-docker -Dsonar.organization=neyhala -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=${{ secrets.SONAR_TOKEN }} --file ./simple-api/pom.xml
   # Job 2 : construire et publier les images Docker
   build-and-push-docker-image:
     # ne se lance que si test-backend a réussi
