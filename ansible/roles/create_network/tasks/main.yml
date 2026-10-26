@@ -1,0 +1,5 @@
+---
+# Crée le réseau Docker qui permet aux conteneurs de communiquer par leur nom
+- name: Create Docker network
+  community.docker.docker_network:
+    name: app-network

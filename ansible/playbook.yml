@@ -1,6 +1,20 @@
-- hosts: all
+# 1) Installation de Docker (avec le Python du système)
+- name: Install Docker
+  hosts: all
   gather_facts: true
   become: true
-
   roles:
     - docker
+
+# 2) Déploiement de l'application (avec le Python qui contient le SDK Docker)
+- name: Deploy application
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python3
+  roles:
+    - create_network
+    - launch_database
+    - launch_app
+    - launch_proxy

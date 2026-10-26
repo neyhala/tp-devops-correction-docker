@@ -1,0 +1,20 @@
+---
+# Lance la base PostgreSQL à partir de l'image publiée sur Docker Hub
+- name: Run database
+  community.docker.docker_container:
+    name: database
+    image: "{{ dockerhub_user }}/tp-devops-database:latest"
+    pull: always                 # récupère toujours la dernière version de l'image
+    state: started
+    restart_policy: unless-stopped
+    env:
+      POSTGRES_DB: "{{ db_name }}"
+      POSTGRES_USER: "{{ db_user }}"
+      POSTGRES_PASSWORD: "{{ db_password }}"
+    volumes:
+      - db-data:/var/lib/postgresql/data   # données persistantes
+    networks:
+      - name: app-network
+        aliases:
+          - db
+          - postgres

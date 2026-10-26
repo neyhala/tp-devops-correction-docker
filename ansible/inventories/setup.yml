@@ -2,6 +2,12 @@ all:
   vars:
     ansible_user: admin
     ansible_ssh_private_key_file: /home/huynh/.ssh/takima_key
+    # Docker Hub
+    dockerhub_user: neyhala
+    # Base de données
+    db_name: db
+    db_user: usr
+    db_password: pwd
   children:
     prod:
       hosts:

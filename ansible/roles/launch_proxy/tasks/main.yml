@@ -1,0 +1,13 @@
+---
+# Lance le reverse proxy Apache, seul conteneur exposé sur Internet (port 80)
+- name: Run HTTPD
+  community.docker.docker_container:
+    name: httpd
+    image: "{{ dockerhub_user }}/tp-devops-httpd:latest"
+    pull: always
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - name: app-network
