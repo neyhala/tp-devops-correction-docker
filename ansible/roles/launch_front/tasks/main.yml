@@ -1,0 +1,11 @@
+---
+# Lance le front Vue.js (servi par Nginx), accessible uniquement via httpd
+- name: Run front
+  community.docker.docker_container:
+    name: front
+    image: "{{ dockerhub_user }}/tp-devops-front:latest"
+    pull: always
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: app-network

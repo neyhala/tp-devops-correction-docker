@@ -13,7 +13,6 @@ on:
 jobs:
   # Job 1 : compiler, tester et analyser l'API
   test-backend:
-    # machine virtuelle Ubuntu fournie par GitHub
     runs-on: ubuntu-24.04
     steps:
       # récupère le code du dépôt sur la machine
@@ -31,36 +30,31 @@ jobs:
         run: mvn clean verify --file ./simple-api/pom.xml
 
       # analyse la qualité du code avec SonarCloud (Quality Gate)
-      # le token est stocké dans les secrets GitHub, jamais en clair
       - name: SonarCloud analysis
         run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=neyhala_tp-devops-correction-docker -Dsonar.organization=neyhala -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=${{ secrets.SONAR_TOKEN }} --file ./simple-api/pom.xml
+
   # Job 2 : construire et publier les images Docker
   build-and-push-docker-image:
     # ne se lance que si test-backend a réussi
     needs: test-backend
     runs-on: ubuntu-24.04
-
     steps:
-      # récupère le code du dépôt
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # connexion à Docker Hub avec les secrets GitHub (jamais en clair)
+      # connexion à Docker Hub avec les secrets GitHub
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-      # construit l'image de l'API et la publie (uniquement sur main)
+      # image de l'API (publiée uniquement sur main)
       - name: Build image and push backend
         uses: docker/build-push-action@v6
         with:
-          # dossier qui contient le Dockerfile
           context: ./simple-api
-          # nom de l'image (en minuscules)
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
-          # construit sur toutes les branches, publie seulement sur main
           push: ${{ github.ref == 'refs/heads/main' }}
 
-      # même chose pour la base de données
+      # image de la base de données
       - name: Build image and push database
         uses: docker/build-push-action@v6
         with:
@@ -68,7 +62,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
           push: ${{ github.ref == 'refs/heads/main' }}
 
-      # même chose pour le serveur Apache
+      # image du serveur Apache (reverse proxy)
       - name: Build image and push httpd
         uses: docker/build-push-action@v6
         with:
@@ -76,16 +70,21 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
           push: ${{ github.ref == 'refs/heads/main' }}
 
+      # image du front Vue.js
+      - name: Build image and push front
+        uses: docker/build-push-action@v6
+        with:
+          context: ./front
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-front:latest
+          push: ${{ github.ref == 'refs/heads/main' }}
+
   # Job 3 : déployer l'application sur le serveur avec Ansible
   deploy:
-    # ne se lance qu'après la publication des images...
+    # ne se lance qu'après la publication des images, et uniquement sur main
     needs: build-and-push-docker-image
-    # ...et uniquement sur la branche main
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-
     steps:
-      # récupère le code (dont le dossier ansible)
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -93,7 +92,7 @@ jobs:
       - name: Install Ansible
         run: pipx install --include-deps ansible
 
-      # recrée la clé SSH à partir du secret GitHub, et enregistre le serveur comme connu
+      # recrée la clé SSH depuis le secret et enregistre le serveur comme connu
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
@@ -101,7 +100,7 @@ jobs:
           chmod 600 ~/.ssh/takima_key
           ssh-keyscan -H alexandre.huynh.takima.school >> ~/.ssh/known_hosts
 
-      # lance le playbook : installe Docker si besoin et (re)déploie les conteneurs
+      # lance le playbook : (re)déploie tous les conteneurs
       - name: Deploy with Ansible
         working-directory: ./ansible
         run: ansible-playbook -i inventories/setup.yml playbook.yml -e ansible_ssh_private_key_file=$HOME/.ssh/takima_key
